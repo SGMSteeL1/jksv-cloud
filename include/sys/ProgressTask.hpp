@@ -1,0 +1,39 @@
+#pragma once
+#include "sys/Task.hpp"
+
+namespace sys
+{
+    /// @brief Derived class of Task that has methods for tracking progress.
+    class ProgressTask final : public sys::Task
+    {
+        public:
+            /// @brief Creates a Progress task.
+            /// @param function
+            /// @param taskData
+            ProgressTask(sys::threadpool::JobFunction function, sys::ProgressTask::TaskData taskData);
+
+            /// @brief Resets the progress and sets a new goal.
+            /// @param goal The goal we all strive for.
+            void reset(double goal) noexcept;
+
+            /// @brief Updates the current progress.
+            /// @param current The current progress value.
+            void update_current(double current) noexcept;
+
+            /// @brief Increases the current progress by a set amount.
+            void increase_current(double amount) noexcept;
+
+            /// @brief Returns the goal value.
+            /// @return Goal
+            double get_goal() const noexcept;
+
+            /// @brief Returns the current progress.
+            /// @return Current progress.
+            double get_progress() const noexcept;
+
+        private:
+            // Current value and goal
+            double m_current{};
+            double m_goal{};
+    };
+} // namespace sys

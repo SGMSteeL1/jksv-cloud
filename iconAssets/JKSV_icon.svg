@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="JKSV Cloud">
+  <defs>
+    <linearGradient id="cloud" x1="180" y1="140" x2="820" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38efff"/>
+      <stop offset="0.48" stop-color="#078cff"/>
+      <stop offset="1" stop-color="#0738c9"/>
+    </linearGradient>
+    <linearGradient id="sync" x1="285" y1="350" x2="750" y2="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6affff"/>
+      <stop offset="1" stop-color="#08a7ff"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#cloud)" d="M800 421c-23-145-148-255-298-255-128 0-242 80-285 198C95 377 0 480 0 606c0 136 110 246 246 246h548c127 0 230-103 230-230 0-124-99-225-224-229v28Z"/>
+  <path fill="url(#sync)" stroke="#d9ffff" stroke-width="18" stroke-linejoin="round" d="M730 469c-55-93-175-125-269-70a200 200 0 0 0-65 59l-64-38 24 151 148-38-64-38c42-58 123-76 187-39 22 13 41 32 54 54l49-41Zm-436 86c55 94 176 126 270 70 26-15 48-36 65-60l64 38-24-151-148 38 64 38c-42 59-123 77-187 39a142 142 0 0 1-55-55l-49 43Z"/>
+</svg>

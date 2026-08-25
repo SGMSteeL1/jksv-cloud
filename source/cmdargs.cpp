@@ -1,0 +1,22 @@
+#include "cmdargs.hpp"
+
+#include <vector>
+
+namespace
+{
+    /// @brief Stores pointers to the arguments passed to JKSV.
+    std::vector<const char *> s_args{};
+}
+
+void cmdargs::store(int argc, const char *argv[])
+{
+    for (int i = 0; i < argc; i++) { s_args.push_back(argv[i]); }
+}
+
+const char *cmdargs::get(int index)
+{
+    const int argCount = s_args.size();
+    if (index < 0 || index >= argCount) { return nullptr; }
+
+    return s_args[index];
+}

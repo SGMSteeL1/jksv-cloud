@@ -1,0 +1,67 @@
+#include "ui/BoundingBox.hpp"
+
+namespace
+{
+    constexpr int CORNER_WIDTH  = 8;
+    constexpr int CORNER_HEIGHT = 8;
+
+    constexpr int RECT_WIDTH  = 4;
+    constexpr int RECT_HEIGHT = 4;
+}
+
+//                      ---- Construction ----
+
+ui::BoundingBox::BoundingBox(int x, int y, int width, int height)
+    : m_x(x)
+    , m_y(y)
+    , m_width(width)
+    , m_height(height)
+{
+    BoundingBox::initialize_static_members();
+}
+
+//                      ---- Public functions ----
+
+void ui::BoundingBox::update(bool hasFocus) { m_colorMod.update(); }
+
+void ui::BoundingBox::render(sdl::SharedTexture &target, bool hasFocus)
+{
+    sm_corners->set_color_mod(m_colorMod);
+
+    const int rightX     = (m_x + m_width) - CORNER_WIDTH;
+    const int rightRectX = (m_x + m_width) - RECT_WIDTH;
+
+    const int midX        = m_x + CORNER_WIDTH;
+    const int midY        = m_y + CORNER_HEIGHT;
+    const int midWidth    = m_width - (CORNER_WIDTH * 2);
+    const int midHeight   = m_height - (CORNER_HEIGHT * 2);
+    const int bottomY     = (m_y + m_height) - CORNER_HEIGHT;
+    const int bottomRectY = (m_y + m_height) - RECT_HEIGHT;
+
+    sm_corners->render_part(target, m_x, m_y, 0, 0, CORNER_WIDTH, CORNER_HEIGHT);
+    sdl::render_rect_fill(target, midX, m_y, midWidth, RECT_HEIGHT, m_colorMod);
+    sm_corners->render_part(target, rightX, m_y, CORNER_HEIGHT, 0, CORNER_WIDTH, CORNER_HEIGHT);
+    // Middle
+    sdl::render_rect_fill(target, m_x, midY, RECT_WIDTH, midHeight, m_colorMod);
+    sdl::render_rect_fill(target, rightRectX, midY, RECT_WIDTH, midHeight, m_colorMod);
+    // Bottom
+    sm_corners->render_part(target, m_x, bottomY, 0, CORNER_HEIGHT, CORNER_WIDTH, CORNER_HEIGHT);
+    sdl::render_rect_fill(target, midX, bottomRectY, midWidth, RECT_HEIGHT, m_colorMod);
+    sm_corners->render_part(target, rightX, bottomY, CORNER_WIDTH, CORNER_HEIGHT, CORNER_WIDTH, CORNER_HEIGHT);
+}
+
+void ui::BoundingBox::set_x(int x) noexcept { m_x = x; }
+
+void ui::BoundingBox::set_y(int y) noexcept { m_y = y; }
+
+void ui::BoundingBox::set_width(int width) noexcept { m_width = width; }
+
+void ui::BoundingBox::set_height(int height) noexcept { m_height = height; }
+
+//                      ---- Private functions ----
+
+void ui::BoundingBox::initialize_static_members()
+{
+    if (sm_corners) { return; }
+    sm_corners = sdl::TextureManager::load("menuCorners", "romfs:/Textures/MenuBounding.png");
+}
