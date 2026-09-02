@@ -188,6 +188,12 @@ namespace
         curl::set_option(handle, CURLOPT_CUSTOMREQUEST, "MKCOL");
 
         if (!curl::perform(handle)) { return remote::NextcloudResult::NetworkError; }
+        char *primaryIp{};
+        if (curl_easy_getinfo(handle.get(), CURLINFO_PRIMARY_IP, &primaryIp) == CURLE_OK &&
+            primaryIp && primaryIp[0] && std::string_view{primaryIp}.find(':') == std::string_view::npos)
+        {
+            credentials.resolvedAddress = primaryIp;
+        }
         const long code = curl::get_response_code(handle);
         return code == 201 || code == 405 ? remote::NextcloudResult::Ok
                                           : remote::NextcloudResult::StorageSetupFailed;
@@ -260,6 +266,7 @@ remote::NextcloudResult remote::nextcloud_save_credentials(const NextcloudCreden
     json::add_object(object, "appPassword", json_object_new_string(credentials.appPassword.c_str()));
     json::add_object(object, "userId", json_object_new_string(credentials.userId.c_str()));
     json::add_object(object, "basePath", json_object_new_string(credentials.basePath.c_str()));
+    json::add_object(object, "resolvedAddress", json_object_new_string(credentials.resolvedAddress.c_str()));
 
     std::string plaintext = json_object_to_json_string_ext(object.get(), JSON_C_TO_STRING_PLAIN);
     const security::SealResult sealed = security::seal_to_file(plaintext, fslib::Path{PATH_NEXTCLOUD_VAULT});
@@ -290,6 +297,13 @@ remote::NextcloudResult remote::nextcloud_load_credentials(NextcloudCredentials 
                           read_required_string(parser.get(), "appPassword", parsed.appPassword) &&
                           read_required_string(parser.get(), "userId", parsed.userId) &&
                           read_required_string(parser.get(), "basePath", parsed.basePath) && parsed.is_valid();
+    json_object *resolved{};
+    if (parser && json_object_object_get_ex(parser.get(), "resolvedAddress", &resolved) && resolved &&
+        json_object_get_type(resolved) == json_type_string)
+    {
+        const char *value = json_object_get_string(resolved);
+        if (value) { parsed.resolvedAddress = value; }
+    }
     secure_clear(plaintext);
     if (!complete)
     {

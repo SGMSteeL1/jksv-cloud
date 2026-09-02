@@ -1,78 +1,128 @@
-# JKSV Cloud 0.3.5
+# Plano de testes — JKSV Cloud 1.0.1
 
-This is a modified JKSV Cloud build. Use a non-critical save for the first test
-and keep an independent local backup.
+Use um jogo não crítico e mantenha um backup independente. Registre firmware,
+versão do Atmosphère, modelo do console e versão do Nextcloud.
 
-## Install
+## 1. Instalação
 
-1. Copy `switch/JKSV-Cloud` from the release ZIP to the root of the SD card.
-2. Start the Homebrew Menu normally. The login uses the Switch keyboard only to
-   enter the server URL and never opens the browser applet.
-3. Open **JKSV Cloud**.
+- [ ] O ZIP completo extrai sem erro.
+- [ ] `switch/JKSV-Cloud/boot.nro` existe.
+- [ ] `atmosphere/contents/420000000000C10D/exefs.nsp` existe.
+- [ ] `cacert.pem`, `toolbox.json` e `flags/boot2.flag` existem.
+- [ ] O ZIP safe contém os mesmos arquivos, exceto `boot2.flag`.
+- [ ] O console reinicia sem tela fatal.
+- [ ] O Homebrew Menu mostra JKSV Cloud `v1.0.1`.
+- [ ] O status/log mostra JKSV Cloud Sync `v1.0.1`.
 
-## Connect
+## 2. Mapa de títulos
 
-1. Open the **Extras** menu.
-2. Choose **Conectar ao Nextcloud**.
-3. Enter the complete HTTPS URL of the desired Nextcloud server.
-4. Scan the QR code shown by JKSV Cloud with your phone.
-5. Sign in and authorize JKSV Cloud on the phone. The Switch polls the server
-   automatically and finishes the connection without opening a browser.
+1. Abra o JKSV Cloud e aguarde a lista terminar de carregar.
+2. Confirme a existência de:
 
-JKSV uses Nextcloud Login Flow v2. There is no shared developer credential and
-the account's normal password is never given to JKSV. Nextcloud creates a
-revocable app password for this console.
+```text
+sdmc:/config/JKSV Cloud/title-map.json
+```
 
-The credential vault is stored at `sdmc:/config/JKSV Cloud/nextcloud.vault`, sealed
-with AES-256-GCM and a console-derived key. It cannot simply be moved to another
-console. As with any Switch homebrew, this is not a security boundary against a
-malicious homebrew running on the same console.
+3. Confira se o objeto `titles` não está vazio.
+4. Confirme que pelo menos um Title ID conhecido aponta para o nome exibido no
+   menu HOME.
 
-## Backup and restore test
+## 3. Conexão Nextcloud
 
-- Open a game in JKSV and create a normal local backup.
-- Highlight that local backup and press **ZR (Enviar)**. The uploaded entry
-  appears with the `[NC]` prefix.
-- To restore, highlight a `[NC]` entry and press **Y**. Restoring overwrites the
-  current save, so only do this after keeping a separate known-good backup.
-- Alternatively, enable JKSV's automatic upload setting for future backups.
+- [ ] Digitar URL HTTPS abre o QR code.
+- [ ] Autorizar no celular conclui o Login Flow v2.
+- [ ] `nextcloud.vault` é criado.
+- [ ] Nenhuma senha/token aparece no log.
+- [ ] Desconectar remove o cofre local e permite conectar novamente.
 
-The files are stored below the `JKSV Cloud` folder in the user's Nextcloud Files.
+## 4. Backup manual e restauração
 
-## Disconnect
+1. Crie um backup local de um jogo não crítico.
+2. Envie-o ao Nextcloud e confirme a entrada remota.
+3. Faça uma segunda alteração no save e um segundo backup.
+4. Com o jogo fechado, restaure o primeiro backup.
+5. Abra o jogo e valide o progresso esperado.
+6. Restaure o backup mais recente, se desejado.
 
-Choose **Desconectar do Nextcloud** in Extras. JKSV tries to revoke the app
-password on the server and then removes the local vault. If the server is
-offline, the local vault is still removed; the token can also be revoked later
-from Nextcloud's Security settings.
+## 5. Backup automático e nome do jogo
 
-## Current scope
+1. Ative a sincronização em segundo plano.
+2. Confirme o módulo em **Status da sincronização**.
+3. Abra um jogo, altere o save e feche-o com **X > Fechar**.
+4. Aguarde o worker terminar.
+5. Confirme no Nextcloud:
 
-- HTTPS with a certificate trusted by the bundled Mozilla CA store is required.
-- Self-signed/private CA certificates are intentionally not accepted by this
-  first test build.
-- This integrates cloud storage into JKSV's backup operations; it does not watch
-  game saves or upload changes while a game is running.
-- The updater only consults published full releases from
-  `SGMSteeL1/jksv-cloud` and only accepts the exact asset `JKSV-Cloud.nro`.
+```text
+JKSV Cloud/Auto Sync/<Nome do Jogo>/
+```
 
-## Update test
+6. Confirme que o ZIP e a notificação usam o nome do jogo.
+7. Confirme no log uma linha semelhante a:
 
-Version 0.3.5 is the first release with the JKSV Cloud updater. It should not
-offer itself when `v0.3.5` is the latest release. To test a later update:
+```text
+Resolved title 0100... as 'Nome do Jogo' from the JKSV Cloud title map.
+```
 
-1. Bump `APP_VERSION` in `Makefile`, commit and publish a matching tag such as
-   `v0.3.6`.
-2. Start version 0.3.5 while connected to the internet.
-3. Confirm that the prompt shows the newer version.
-4. Choose **No** once and verify that no file changes.
-5. Restart, choose **Yes**, wait for JKSV Cloud to close and open it again.
-6. Confirm the new version in Homebrew Menu and check that
-   `sdmc:/switch/JKSV-Cloud/boot.nro.bak` contains the previous executable.
+ou:
 
-The updater downloads to `boot.nro.update`, verifies the exact release size and
-the `NRO0` header, then replaces the executable. A failed download is discarded
-without truncating the installed NRO.
+```text
+Resolved title 0100... as 'Nome do Jogo' from Nintendo metadata.
+```
 
-If a connection fails, reproduce it once and collect the JKSV log from the SD
-card. Do not share `nextcloud.vault`; while sealed, it is still account material.
+8. Repita com jogos de regiões/idiomas diferentes.
+9. Confirme que pastas antigas por Title ID permanecem intactas e que o novo
+   backup usa a pasta legível.
+
+## 6. Save sem alterações
+
+1. Feche novamente o mesmo jogo sem alterar seu save.
+2. Confirme que o log informa save inalterado.
+3. Confirme que nenhum ZIP duplicado é enviado.
+
+## 7. Fila offline
+
+1. Desative o Wi-Fi.
+2. Altere e feche um jogo.
+3. Confirme o ZIP em `sdmc:/JKSV Cloud/Sync Queue`.
+4. Confirme o item pendente no status.
+5. Reative o Wi-Fi e deixe o console no HOME.
+6. Confirme o envio automático e a remoção segura do item concluído.
+
+## 8. Falhas controladas
+
+- URL inválida retorna erro sem travar o monitor.
+- Credencial revogada mantém o ZIP na fila.
+- Certificado inválido é rejeitado.
+- Timeout TCP/TLS/HTTP termina e atualiza o status.
+- Um upload pendente não impede detectar o fechamento de outro jogo.
+- Saves auxiliares vazios são ignorados sem falso sucesso.
+
+## 9. Notificações e painel
+
+- Com API Notifications habilitada no Ultrahand, sucesso aparece após o envio.
+- Falha de rede aparece como item pendente, não como backup perdido.
+- O painel mostra atividade, último resultado e quantidade pendente.
+- O heartbeat não expira durante uma operação WebDAV demorada.
+
+## 10. Atualizador
+
+Uma instalação `1.0.0` deve reconhecer `v1.0.1` quando a release estiver
+publicada e contiver `JKSV-Cloud.nro`.
+
+- escolher **Não** não altera arquivos;
+- escolher **Sim** instala o NRO e mantém `boot.nro.bak` temporariamente;
+- o NRO instalado mostra `v1.0.1`;
+- o teste também confirma que o sysmodule continua exigindo instalação pelo ZIP
+  completo e reinicialização.
+
+## 11. Evidências para a release
+
+Antes de criar a tag, guarde localmente:
+
+- hashes SHA-256 dos assets;
+- saída do build limpo;
+- lista interna dos dois ZIPs;
+- trecho do log com versão, nome resolvido e HTTP de sucesso;
+- captura da pasta remota usando o nome do jogo.
+
+Não publique `nextcloud.vault`, saves, tokens ou URLs privadas.

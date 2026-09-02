@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Validate release tag
         if: startsWith(github.ref, 'refs/tags/v')
@@ -30,25 +32,88 @@ jobs:
           app_version="$(sed -n 's/^APP_VERSION[[:space:]]*:=[[:space:]]*//p' Makefile | tr -d '[:space:]')"
           test "$tag_version" = "$app_version"
 
-      - name: Build NRO
+      - name: Validate component versions
+        shell: bash
+        run: |
+          app_version="$(sed -n 's/^APP_VERSION[[:space:]]*:=[[:space:]]*//p' Makefile | tr -d '[:space:]')"
+          grep -Fq "VERSION = \"$app_version\"" sysmodule/include/Config.hpp
+          python3 - "$app_version" <<'PY'
+          import json
+          import sys
+
+          with open("sysmodule/toolbox.json", encoding="utf-8") as stream:
+              toolbox = json.load(stream)
+          if toolbox.get("version") != sys.argv[1]:
+              raise SystemExit("toolbox.json version does not match APP_VERSION")
+          PY
+          grep -Fq "JKSV-Cloud-Sync/$app_version" sysmodule/source/MbedWebDav.cpp
+
+      - name: Build NRO and sync sysmodule
         run: make -j1
 
       - name: Create SD package
         shell: bash
         run: |
           version="$(sed -n 's/^APP_VERSION[[:space:]]*:=[[:space:]]*//p' Makefile | tr -d '[:space:]')"
-          mkdir -p release/switch/JKSV-Cloud
-          cp JKSV-Cloud.nro release/switch/JKSV-Cloud/boot.nro
-          cd release
-          python3 -m zipfile -c "../JKSV-Cloud-${version}.zip" switch/JKSV-Cloud/boot.nro
+          mkdir -p release-staging/switch/JKSV-Cloud
+          mkdir -p release-staging/atmosphere/contents/420000000000C10D/flags
+          mkdir -p release-assets
+          cp JKSV-Cloud.nro release-assets/JKSV-Cloud.nro
+          cp sysmodule/JKSV-Cloud-Sync.nsp release-assets/JKSV-Cloud-Sync.nsp
+          cp JKSV-Cloud.nro release-staging/switch/JKSV-Cloud/boot.nro
+          cp sysmodule/JKSV-Cloud-Sync.nsp release-staging/atmosphere/contents/420000000000C10D/exefs.nsp
+          cp romfs/certs/cacert.pem release-staging/atmosphere/contents/420000000000C10D/cacert.pem
+          cp sysmodule/toolbox.json release-staging/atmosphere/contents/420000000000C10D/toolbox.json
+          touch release-staging/atmosphere/contents/420000000000C10D/flags/boot2.flag
+          VERSION="$version" python3 - <<'PY'
+          import os
+          import subprocess
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          common = [
+              "switch/JKSV-Cloud/boot.nro",
+              "atmosphere/contents/420000000000C10D/exefs.nsp",
+              "atmosphere/contents/420000000000C10D/cacert.pem",
+              "atmosphere/contents/420000000000C10D/toolbox.json",
+          ]
+          version = os.environ["VERSION"]
+          for suffix, files in (
+              ("", common + ["atmosphere/contents/420000000000C10D/flags/boot2.flag"]),
+              ("-safe", common),
+          ):
+              output = f"release-assets/JKSV-Cloud-{version}{suffix}.zip"
+              with ZipFile(output, "w", ZIP_DEFLATED) as archive:
+                  for path in files:
+                      archive.write(f"release-staging/{path}", path)
+
+          source_name = f"JKSV-Cloud-{version}-source"
+          tracked = subprocess.check_output(
+              ["git", "ls-files", "--recurse-submodules", "-z"]
+          ).decode().split("\0")
+          with ZipFile(f"release-assets/{source_name}.zip", "w", ZIP_DEFLATED) as archive:
+              for path in tracked:
+                  if path and os.path.isfile(path):
+                      archive.write(path, f"{source_name}/{path}")
+          PY
+
+      - name: Create checksums
+        shell: bash
+        run: |
+          version="$(sed -n 's/^APP_VERSION[[:space:]]*:=[[:space:]]*//p' Makefile | tr -d '[:space:]')"
+          cd release-assets
+          sha256sum \
+            JKSV-Cloud.nro \
+            JKSV-Cloud-Sync.nsp \
+            "JKSV-Cloud-$version.zip" \
+            "JKSV-Cloud-$version-safe.zip" \
+            "JKSV-Cloud-$version-source.zip" \
+            > "SHA256SUMS-$version.txt"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: JKSV-Cloud-${{ github.sha }}
-          path: |
-            JKSV-Cloud.nro
-            JKSV-Cloud-*.zip
+          path: release-assets/*
           if-no-files-found: error
 
   release:
@@ -58,6 +123,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Check out release notes
+        uses: actions/checkout@v4
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
@@ -71,8 +139,10 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             release-assets/JKSV-Cloud.nro \
+            release-assets/JKSV-Cloud-Sync.nsp \
             release-assets/JKSV-Cloud-*.zip \
+            release-assets/SHA256SUMS-*.txt \
             --repo "$GITHUB_REPOSITORY" \
             --title "JKSV Cloud ${GITHUB_REF_NAME#v}" \
-            --generate-notes \
+            --notes-file RELEASE_NOTES.md \
             --verify-tag

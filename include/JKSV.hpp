@@ -42,7 +42,7 @@ class JKSV
         /// @brief Stores the translation string.
         std::string m_translationInfo{};
 
-        /// @brief Stores the build string.
+        /// @brief Stores the application version displayed in the footer.
         std::string m_buildString{};
 
         /// @brief Sets the system to enable boost mode.

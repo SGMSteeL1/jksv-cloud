@@ -17,6 +17,7 @@
 #include "strings/strings.hpp"
 #include "stringutil.hpp"
 #include "sys/sys.hpp"
+#include "sync/SyncConfig.hpp"
 #include "tasks/mainmenu.hpp"
 #include "tasks/update.hpp"
 #include "ui/PopMessageManager.hpp"
@@ -37,6 +38,7 @@ MainMenuState::MainMenuState()
     MainMenuState::initialize_view_states();
     MainMenuState::initialize_data_struct();
     MainMenuState::check_for_update();
+    syncconfig::notify_new_result();
 }
 
 //                      ---- Public functions ----

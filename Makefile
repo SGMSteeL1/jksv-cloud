@@ -34,13 +34,13 @@ TARGET		:=	JKSV-Cloud
 BUILD		:=	build
 SOURCES		:=	source source/appstates source/config source/curl source/data source/fs \
 				source/keyboard source/logging source/remote source/strings source/sys \
-				source/tasks source/ui source/security source/util
+				source/tasks source/ui source/security source/util source/sync
 DATA		:=	data
 INCLUDES	:=	include ./Libraries/FsLib/Switch/FsLib/include ./Libraries/SDLLib/SDL/include
 EXEFS_SRC	:=	exefs_src
 APP_TITLE   :=  JKSV Cloud
-APP_AUTHOR  :=  JK/Steel
-APP_VERSION :=  0.3.5
+APP_AUTHOR  :=  J-D-K / Steel
+APP_VERSION :=  1.0.1
 ROMFS	    :=	romfs
 ICON		:=	icon.jpg
 
@@ -151,12 +151,12 @@ ifneq ($(ROMFS),)
 	export NROFLAGS += --romfsdir=$(CURDIR)/$(ROMFS)
 endif
 
-.PHONY: $(BUILD) FsLib SDLLib Assets clean all
+.PHONY: $(BUILD) FsLib SDLLib Assets SyncModule clean all
 
 #---------------------------------------------------------------------------------
-all: FsLib SDLLib Assets $(BUILD)
+all: FsLib SDLLib Assets SyncModule $(BUILD)
 
-$(BUILD): FsLib SDLLib Assets
+$(BUILD): FsLib SDLLib Assets SyncModule
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
@@ -174,7 +174,12 @@ SDLLib:
 
 Assets:
 	@echo python script
-	@python ./Assets/compress_assets.py
+	@python3 ./Assets/compress_assets.py
+
+#---------------------------------------------------------------------------------
+
+SyncModule:
+	@$(MAKE) -C ./sysmodule -j1
 
 #---------------------------------------------------------------------------------
 
@@ -182,6 +187,7 @@ clean:
 	@echo clean ...
 	@$(MAKE) -C ./Libraries/FsLib/Switch/FsLib clean
 	@$(MAKE) -C ./Libraries/SDLLib/SDL clean
+	@$(MAKE) -C ./sysmodule clean
 	@rm -fr $(BUILD) $(TARGET).pfs0 $(TARGET).nso $(TARGET).nro $(TARGET).nacp $(TARGET).elf
 	@rm -r ./romfs/Text
 

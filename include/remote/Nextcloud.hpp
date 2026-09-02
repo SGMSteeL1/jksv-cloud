@@ -22,6 +22,10 @@ namespace remote
         std::string appPassword{};
         std::string userId{};
         std::string basePath{};
+        // IPv4 address observed during the authenticated setup request. The
+        // sysmodule uses it with CURLOPT_RESOLVE so its synchronous resolver
+        // cannot block the background worker indefinitely.
+        std::string resolvedAddress{};
 
         bool is_valid() const noexcept;
     };

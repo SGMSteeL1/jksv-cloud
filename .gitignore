@@ -34,6 +34,17 @@ JKSV-Cloud.nro
 JKSV-Cloud.nso
 JKSV-Cloud.pfs0
 JKSV-Cloud-*.zip
+release-assets/
+release-staging/
+SHA256SUMS-*.txt
+
+# Optional background sync sysmodule outputs
+sysmodule/build/
+sysmodule/JKSV-Cloud-Sync.elf
+sysmodule/JKSV-Cloud-Sync.map
+sysmodule/JKSV-Cloud-Sync.npdm
+sysmodule/JKSV-Cloud-Sync.nso
+sysmodule/JKSV-Cloud-Sync.nsp
 
 # Temporary/recovery files created by the in-app updater
 *.nro.update

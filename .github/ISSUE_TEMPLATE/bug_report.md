@@ -23,7 +23,8 @@ Describe what happened instead.
 
 **Log file output:**
 
-Check `sdmc:/config/JKSV Cloud/JKSV.log` for meaningful output. Remove
+Check `sdmc:/config/JKSV Cloud/JKSV.log` and, for background sync,
+`sdmc:/config/JKSV Cloud/JKSV-Cloud-Sync.log` for meaningful output. Remove
 personal server addresses or account identifiers before attaching it. Never
 attach `nextcloud.vault` or save data.
 

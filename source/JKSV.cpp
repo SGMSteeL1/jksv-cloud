@@ -4,7 +4,6 @@
 #include "appstates/FileModeState.hpp"
 #include "appstates/MainMenuState.hpp"
 #include "appstates/TaskState.hpp"
-#include "builddate.hpp"
 #include "config/config.hpp"
 #include "curl/curl.hpp"
 #include "data/data.hpp"
@@ -19,9 +18,11 @@
 #include "strings/strings.hpp"
 #include "stringutil.hpp"
 #include "sys/sys.hpp"
+#include "sync/SyncConfig.hpp"
 #include "ui/PopMessageManager.hpp"
 
 #include <chrono>
+#include <ctime>
 #include <switch.h>
 #include <thread>
 
@@ -88,6 +89,7 @@ JKSV::JKSV()
 
     // This needs the config init'd or read to work.
     JKSV::create_directories();
+    syncconfig::set_app_active(true);
     sys::threadpool::initialize(); // This is the thread pool so JKSV isn't constantly creating and destroying threads.
 
     // Push the remote init.
@@ -111,6 +113,7 @@ JKSV::JKSV()
 
 JKSV::~JKSV()
 {
+    syncconfig::set_app_active(false);
     sys::threadpool::exit();
     config::save();
     curl::exit();
@@ -128,6 +131,15 @@ bool JKSV::is_running() const noexcept { return sm_isRunning && appletMainLoop()
 
 void JKSV::update()
 {
+    static std::time_t lastSyncHeartbeat{};
+    const std::time_t now = std::time(nullptr);
+    if (now > 0 && (lastSyncHeartbeat == 0 || now - lastSyncHeartbeat >= 15))
+    {
+        syncconfig::set_app_active(true);
+        syncconfig::notify_new_result();
+        lastSyncHeartbeat = now;
+    }
+
     input::update();
 
     const bool plusPressed = input::button_pressed(HidNpadButton_Plus);
@@ -273,7 +285,7 @@ void JKSV::render_base()
     static constexpr int TITLE_Y    = 32;
     static constexpr int TITLE_SIZE = 34;
 
-    // Coordinates for the translation info and build date.
+    // Coordinates for the translation info and application version.
     static constexpr int BUILD_X    = 8;
     static constexpr int BUILD_Y    = 700;
     static constexpr int TRANS_Y    = 680;
@@ -304,7 +316,7 @@ void JKSV::render_base()
                           m_translationInfo);
     }
 
-    // Build date
+    // Application version
     sdl::text::render(sdl::Texture::Null, BUILD_X, BUILD_Y, BUILD_SIZE, sdl::text::NO_WRAP, colors::WHITE, m_buildString);
 }
 

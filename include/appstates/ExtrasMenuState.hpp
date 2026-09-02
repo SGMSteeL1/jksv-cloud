@@ -4,6 +4,8 @@
 #include "ui/ControlGuide.hpp"
 #include "ui/Menu.hpp"
 
+#include <ctime>
+
 /// @brief Extras menu.
 class ExtrasMenuState final : public BaseState
 {
@@ -33,8 +35,17 @@ class ExtrasMenuState final : public BaseState
         /// @brief Control guider for bottom right corner.
         std::shared_ptr<ui::ControlGuide> m_controlGuide{};
 
+        /// @brief Avoids reading the heartbeat file on every rendered frame.
+        std::time_t m_lastStatusRefresh{};
+
         /// @brief Creates and loads the menu strings.
         void initialize_menu();
+
+        /// @brief Refreshes the color-coded sysmodule heartbeat in the menu.
+        void refresh_status_option();
+
+        /// @brief Opens the detailed synchronization status panel.
+        void show_sync_status();
 
         /// @brief This function is called when Reinitialize data is selected.
         void reinitialize_data();
@@ -62,4 +73,7 @@ class ExtrasMenuState final : public BaseState
 
         /// @brief Removes the console-bound Nextcloud credential.
         void disconnect_nextcloud();
+
+        /// @brief Enables or disables the optional post-game sync sysmodule.
+        void toggle_background_sync();
 };

@@ -4,111 +4,197 @@
 [![Release](https://img.shields.io/github/v/release/SGMSteeL1/jksv-cloud)](https://github.com/SGMSteeL1/jksv-cloud/releases/latest)
 [![License](https://img.shields.io/github/license/SGMSteeL1/jksv-cloud)](LICENSE)
 
-JKSV Cloud é uma modificação do JKSV para Nintendo Switch com integração
-intuitiva ao Nextcloud, identificação própria de pastas e atualização pelo
-GitHub Releases.
+JKSV Cloud é um fork independente do [JKSV](https://github.com/J-D-K/JKSV),
+criado para facilitar backups de saves do Nintendo Switch em um servidor
+Nextcloud. Além dos recursos do JKSV, este fork adiciona conexão guiada por QR
+code, armazenamento protegido da credencial, atualização pelo GitHub e um
+sysmodule opcional que cria o backup quando o jogo é fechado.
 
-Este projeto não é um release oficial do JKSV. O código derivado continua sob
-a GNU General Public License v3.0. Consulte `LICENSE` e `NOTICE.md`.
+> **Crédito principal:** o aplicativo e a base de gerenciamento de saves foram
+> desenvolvidos por **J-D-K e pelos contribuidores do JKSV**. O **JKSV Cloud** é
+> uma modificação mantida por **Steel (SGMSteeL1)**. Este projeto não é uma
+> versão oficial, não é afiliado ao projeto original e não deve direcionar ao
+> autor original pedidos de suporte específicos deste fork.
 
-## Recursos desta versão
+Distribuído sob a [GNU General Public License v3.0](LICENSE). Consulte também
+[CREDITS.md](CREDITS.md) e [NOTICE.md](NOTICE.md).
 
-- Nome do aplicativo: **JKSV Cloud**.
-- Autor exibido no Homebrew Menu: **JK/Steel**.
-- Login em qualquer servidor Nextcloud compatível por URL HTTPS.
-- Nextcloud Login Flow v2: a senha normal da conta não é entregue ao homebrew.
-- QR code exibido dentro do aplicativo, sem depender do applet de navegador do
-  Nintendo Switch.
-- Credencial de aplicativo selada para o console em
-  `sdmc:/config/JKSV Cloud/nextcloud.vault`.
-- Backup local em `sdmc:/JKSV Cloud`.
-- Configuração em `sdmc:/config/JKSV Cloud`.
-- Diretório remoto `JKSV Cloud` no Nextcloud.
-- Verificação automática de novas versões publicadas neste repositório.
-- Download seguro para arquivo temporário, validação do cabeçalho NRO e troca
-  com cópia de recuperação `boot.nro.bak`.
+## Comece por aqui
 
-O suporte original do JKSV para saves, ZIP, Google Drive e WebDAV permanece no
-código. O fluxo recomendado desta modificação é o Nextcloud.
+- **Usuário iniciante:** leia o [guia completo de instalação e uso](HOW_TO_USE.md).
+- **Quer apenas instalar:** baixe `JKSV-Cloud-1.0.1.zip` em
+  [Releases](https://github.com/SGMSteeL1/jksv-cloud/releases/latest), extraia-o
+  na raiz do cartão SD e reinicie o console.
+- **Quer publicar ou manter o fork:** siga [PUBLISHING.md](PUBLISHING.md).
+- **Quer validar uma compilação:** consulte [TESTING.md](TESTING.md).
 
-## Instalação
+## O que o fork adiciona
 
-1. Baixe o ZIP da versão mais recente em
-   [Releases](https://github.com/SGMSteeL1/jksv-cloud/releases/latest).
-2. Extraia a pasta `switch` para a raiz do cartão SD.
-3. Confirme que o executável ficou em
-   `sdmc:/switch/JKSV-Cloud/boot.nro`.
-4. Abra **JKSV Cloud** pelo Homebrew Menu com acesso total à memória.
+- conexão com qualquer Nextcloud compatível usando URL HTTPS e Login Flow v2;
+- autorização pelo celular por QR code, sem digitar a senha no Switch;
+- senha de aplicativo revogável, selada ao console em
+  `sdmc:/config/JKSV Cloud/nextcloud.vault`;
+- backup local em `sdmc:/JKSV Cloud` e pasta remota `JKSV Cloud`;
+- sysmodule **JKSV Cloud Sync** para backup automático após fechar o jogo;
+- pastas, ZIPs e notificações identificados pelo nome oficial do jogo;
+- Title ID somente como fallback quando nenhum metadado está disponível;
+- fila offline persistente em `sdmc:/JKSV Cloud/Sync Queue`;
+- WebDAV próprio sobre mbedTLS, TLS 1.2, SNI e validação de certificado;
+- timeouts separados de conexão TCP, handshake TLS e operação HTTP;
+- worker de upload separado do monitor de jogos;
+- painel de status, log de diagnóstico e notificações opcionais via Ultrahand;
+- atualização voluntária do arquivo NRO por GitHub Releases;
+- restauração somente manual, com o jogo fechado.
 
-Antes do primeiro teste, mantenha um backup independente de um save não
-crítico.
+## Instalação rápida
+
+Requisitos mínimos:
+
+- Nintendo Switch capaz de executar Atmosphère e Homebrew Menu;
+- cartão SD com espaço livre;
+- conexão à internet no Switch;
+- servidor Nextcloud acessível por HTTPS, com certificado confiável;
+- um celular ou computador para autorizar a conexão.
+
+Procedimento:
+
+1. Faça um backup de segurança de um save não crítico.
+2. Baixe `JKSV-Cloud-1.0.1.zip` na página da release.
+3. Extraia as pastas `switch` e `atmosphere` para a **raiz** do cartão SD.
+4. Aceite a substituição de arquivos de uma versão anterior.
+5. Recoloque o cartão e reinicie completamente o Switch.
+6. Abra o Homebrew Menu em modo de memória completa e inicie **JKSV Cloud**.
+7. Aguarde a tela principal terminar de carregar. Isso também cria o mapa que
+   permite ao sysmodule usar o nome dos jogos.
+
+Arquivos principais instalados:
+
+```text
+sdmc:/switch/JKSV-Cloud/boot.nro
+sdmc:/atmosphere/contents/420000000000C10D/exefs.nsp
+sdmc:/atmosphere/contents/420000000000C10D/cacert.pem
+sdmc:/atmosphere/contents/420000000000C10D/toolbox.json
+sdmc:/atmosphere/contents/420000000000C10D/flags/boot2.flag
+```
+
+O arquivo `exefs.nsp` **não é um jogo e não deve ser instalado pelo DBI,
+Tinfoil ou outro instalador**. Ele deve permanecer exatamente na pasta
+`atmosphere/contents/420000000000C10D`.
+
+### Pacote completo ou safe?
+
+| Pacote | Comportamento | Indicado para |
+|---|---|---|
+| `JKSV-Cloud-1.0.1.zip` | Inclui `boot2.flag`; o sysmodule inicia junto com o Atmosphère. | Instalação normal. |
+| `JKSV-Cloud-1.0.1-safe.zip` | Não inclui `boot2.flag`; o sysmodule fica desativado até ser habilitado manualmente. | Diagnóstico, primeira inicialização cautelosa ou usuários do Ultrahand/ovl-sysmodules. |
+
+Ao habilitar ou desabilitar o sysmodule, reinicie o console.
 
 ## Conectar ao Nextcloud
 
-1. Abra o menu **Extras**.
-2. Selecione **Conectar ao Nextcloud**.
-3. Digite a URL HTTPS completa do servidor desejado.
-4. Escaneie com o celular o QR code mostrado no Switch.
-5. Entre na conta e autorize o aplicativo.
+1. Abra **JKSV Cloud**.
+2. Entre no menu **Extras**.
+3. Selecione **Conectar ao Nextcloud**.
+4. Digite a URL completa, incluindo `https://` e qualquer subpasta usada pelo
+   servidor.
+5. Escaneie o QR code com o celular.
+6. Entre no Nextcloud no celular e autorize o aplicativo.
+7. Volte ao Switch e aguarde a confirmação.
 
-O servidor cria uma senha de aplicativo revogável para este console. Para trocar
-de servidor, desconecte a conta atual em **Extras** e execute a conexão de novo.
+O Login Flow v2 entrega ao JKSV Cloud uma senha de aplicativo revogável. A
+senha normal da conta não é fornecida ao homebrew. Para trocar de servidor ou
+conta, use **Extras > Desconectar do Nextcloud** e conecte novamente.
 
-## Atualizações automáticas
+## Ativar e testar o backup automático
 
-Ao iniciar, a aplicação consulta uma única vez:
+1. Confirme que instalou o pacote completo e reiniciou o console.
+2. Abra o JKSV Cloud uma vez e aguarde a lista de jogos aparecer.
+3. Em **Extras**, altere **Sincronização em segundo plano** para **Ativada**.
+4. Abra **Status da sincronização** e confirme que o módulo está em execução.
+5. Abra um jogo, faça uma alteração visível no save e volte ao menu HOME.
+6. Feche o jogo completamente com **X > Fechar**.
+7. Aguarde alguns segundos sem abrir outro jogo.
+8. No Nextcloud, confira:
 
-`https://api.github.com/repos/SGMSteeL1/jksv-cloud/releases/latest`
+```text
+JKSV Cloud/Auto Sync/<Nome do Jogo>/
+```
 
-Se a `tag_name` for semanticamente superior à versão compilada, por exemplo
-`v0.3.6` acima de `0.3.5`, e o release contiver o asset exato
-`JKSV-Cloud.nro`, o usuário recebe uma confirmação. A atualização só acontece
-depois de escolher **Sim**.
+O sysmodule aguarda o encerramento do processo do jogo, abre saves `Account` e
+`Device` somente para leitura e evita repetir saves cujo `commit_id` não mudou.
+Se não houver rede, o ZIP permanece na fila local e será reenviado quando o
+console estiver livre e a conexão voltar.
 
-Releases em rascunho e pré-releases não são oferecidos pelo atualizador. O
-repositório deve permanecer público para que o Switch consulte a API sem token.
+## Pastas e arquivos de diagnóstico
 
-## Compilar localmente
+| Caminho | Conteúdo | Pode compartilhar? |
+|---|---|---|
+| `sdmc:/JKSV Cloud` | Backups locais. | Não; contém saves pessoais. |
+| `sdmc:/JKSV Cloud/Sync Queue` | Backups aguardando envio. | Não; contém saves pessoais. |
+| `sdmc:/config/JKSV Cloud/nextcloud.vault` | Credencial de aplicativo selada ao console. | **Nunca.** |
+| `sdmc:/config/JKSV Cloud/title-map.json` | Mapa de Title ID para nome. | Sim, depois de revisar. |
+| `sdmc:/config/JKSV Cloud/sync-status.json` | Estado resumido do sysmodule. | Sim, depois de revisar. |
+| `sdmc:/config/JKSV Cloud/JKSV-Cloud-Sync.log` | Log técnico sem senha ou token. | Sim, depois de revisar. |
 
-Requisitos:
+## Atualizações
 
-- devkitPro com devkitA64 e libnx;
-- Python 3;
-- portlibs do Switch: bzip2, curl, freetype, harfbuzz, libjpeg-turbo,
-  libjson-c, libpng, libwebp, SDL2, SDL2_image, tinyxml2 e zlib.
+O aplicativo consulta a release pública mais recente de
+`SGMSteeL1/jksv-cloud` uma vez ao iniciar. Só oferece uma atualização quando a
+tag publicada é semanticamente superior à versão instalada e existe um asset
+chamado exatamente `JKSV-Cloud.nro`.
 
-As dependências FsLib e SDLLib estão incluídas na árvore de código. Com o
-ambiente devkitPro configurado:
+O atualizador interno troca **somente o NRO**. Se as notas da nova versão
+informarem que o sysmodule mudou, instale novamente o ZIP completo e reinicie.
+Releases em rascunho ou marcadas como pré-release não são oferecidas.
+
+## Segurança e limitações
+
+- use primeiro um jogo não crítico e mantenha uma cópia independente;
+- a restauração substitui o save atual e nunca é executada pelo sysmodule;
+- feche o jogo antes de restaurar qualquer save;
+- certificados autoassinados ou emitidos por CA privada não são aceitos pela
+  configuração padrão;
+- a credencial selada não deve ser copiada nem publicada;
+- mods de sistema e homebrews são usados por conta e risco do usuário;
+- esta versão foi validada no ambiente de desenvolvimento informado nas notas
+  da release; outras combinações de firmware e Atmosphère podem exigir testes.
+
+## Compilar
+
+Instale devkitPro com devkitA64, libnx, Python 3 e os portlibs do Switch usados
+pelo JKSV: bzip2, curl, freetype, harfbuzz, libjpeg-turbo, libjson-c, libpng,
+libwebp, SDL2, SDL2_image, tinyxml2, minizip, mbedTLS e zlib. Clone com os
+submódulos e compile:
 
 ```bash
+git clone --recurse-submodules https://github.com/SGMSteeL1/jksv-cloud.git
+cd jksv-cloud
+make clean
 make -j1
 ```
 
-O resultado será `JKSV-Cloud.nro`. O workflow em
-`.github/workflows/build-release.yml` usa a imagem
-`devkitpro/devkita64:latest` para repetir essa compilação no GitHub Actions.
+Saídas esperadas:
 
-## Publicar uma versão
+```text
+JKSV-Cloud.nro
+sysmodule/JKSV-Cloud-Sync.nsp
+```
 
-As instruções completas para o primeiro envio e para releases futuros estão em
-[`PUBLISHING.md`](PUBLISHING.md). O fluxo resumido é:
+O workflow em `.github/workflows/build-release.yml` repete a compilação em uma
+imagem oficial do devkitPro, valida as versões e monta os ZIPs.
 
-1. alterar somente `APP_VERSION` no `Makefile`;
-2. fazer commit e enviar para `main`;
-3. criar uma tag no formato `vMAJOR.MINOR.PATCH` com o mesmo número;
-4. enviar a tag.
+## Créditos
 
-O GitHub Actions valida a versão, compila, monta o ZIP do cartão SD e publica
-automaticamente `JKSV-Cloud.nro` e `JKSV-Cloud-VERSAO.zip` no release.
+- **JKSV e seu rewrite:** [J-D-K](https://github.com/J-D-K) e
+  [contribuidores](https://github.com/J-D-K/JKSV/graphs/contributors).
+- **Fork JKSV Cloud:** Steel
+  ([@SGMSteeL1](https://github.com/SGMSteeL1)).
+- **FsLib e SDLLib:** J-D-K.
+- **Selagem de credenciais:** baseada no design `device_seal` do
+  [Checkpoint](https://github.com/FlagBrew/Checkpoint), de Bernardo Giordano,
+  FlagBrew e contribuidores.
+- **Certificados raiz:** programa da Mozilla, pacote obtido pelo
+  [CA Extract do curl](https://curl.se/docs/caextract.html).
 
-## Créditos e licença
-
-- JKSV e o rewrite original: J-D-K e contribuidores.
-- Modificação JKSV Cloud: JK/Steel.
-- Selagem de credenciais derivada do design `device_seal` do Checkpoint;
-  detalhes e atribuições em `NOTICE.md`.
-- Certificados raiz: programa de certificados da Mozilla, distribuídos pelo
-  serviço CA Extract do curl.
-
-Distribuído sob a GNU GPL v3.0. Ao redistribuir binários, disponibilize também o
-código-fonte correspondente e preserve `LICENSE`, `NOTICE.md` e os créditos.
+A relação completa de origem, licenças e alterações está em
+[CREDITS.md](CREDITS.md) e [NOTICE.md](NOTICE.md).

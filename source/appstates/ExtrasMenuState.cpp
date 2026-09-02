@@ -2,6 +2,7 @@
 
 #include "appstates/FileModeState.hpp"
 #include "appstates/MainMenuState.hpp"
+#include "appstates/MessageState.hpp"
 #include "appstates/NextcloudLoginState.hpp"
 #include "appstates/TaskState.hpp"
 #include "data/data.hpp"
@@ -11,9 +12,11 @@
 #include "keyboard/keyboard.hpp"
 #include "remote/remote.hpp"
 #include "strings/strings.hpp"
+#include "sync/SyncConfig.hpp"
 #include "ui/PopMessageManager.hpp"
 
 #include <array>
+#include <ctime>
 #include <string>
 #include <string_view>
 
@@ -33,7 +36,9 @@ namespace
         BIS_USER,
         TERMINATE_PROCESS,
         NEXTCLOUD_CONNECT,
-        NEXTCLOUD_DISCONNECT
+        NEXTCLOUD_DISCONNECT,
+        BACKGROUND_SYNC,
+        SYNC_STATUS
     };
 } // namespace
 
@@ -61,6 +66,13 @@ void ExtrasMenuState::update()
     m_extrasMenu->update(hasFocus);
     m_controlGuide->update(hasFocus);
 
+    const std::time_t now = std::time(nullptr);
+    if (now != m_lastStatusRefresh)
+    {
+        m_lastStatusRefresh = now;
+        ExtrasMenuState::refresh_status_option();
+    }
+
     if (aPressed)
     {
         switch (m_extrasMenu->get_selected())
@@ -74,6 +86,8 @@ void ExtrasMenuState::update()
             case TERMINATE_PROCESS: ExtrasMenuState::terminate_process(); break;
             case NEXTCLOUD_CONNECT: ExtrasMenuState::connect_nextcloud(); break;
             case NEXTCLOUD_DISCONNECT: ExtrasMenuState::disconnect_nextcloud(); break;
+            case BACKGROUND_SYNC: ExtrasMenuState::toggle_background_sync(); break;
+            case SYNC_STATUS: ExtrasMenuState::show_sync_status(); break;
         }
     }
     else if (bPressed) { BaseState::deactivate(); }
@@ -106,6 +120,19 @@ void ExtrasMenuState::initialize_menu()
     const char *disconnect = strings::get_by_name(strings::names::NEXTCLOUD, 1);
     m_extrasMenu->add_option(connect ? connect : "Connect Nextcloud");
     m_extrasMenu->add_option(disconnect ? disconnect : "Disconnect Nextcloud");
+    m_extrasMenu->add_option(syncconfig::get_menu_label(syncconfig::is_enabled()));
+    m_extrasMenu->add_option(syncconfig::get_status_menu_label());
+}
+
+void ExtrasMenuState::refresh_status_option()
+{
+    if (m_extrasMenu) { m_extrasMenu->edit_option(SYNC_STATUS, syncconfig::get_status_menu_label()); }
+}
+
+void ExtrasMenuState::show_sync_status()
+{
+    std::string details = syncconfig::get_status_details();
+    MessageState::create_push_fade(details);
 }
 
 void ExtrasMenuState::reinitialize_data() { data::launch_initialization(true, finish_reinitialization); }
@@ -172,6 +199,44 @@ void ExtrasMenuState::disconnect_nextcloud()
     TaskState::create_push_fade(disconnect_nextcloud_task, data);
 }
 
+void ExtrasMenuState::toggle_background_sync()
+{
+    const int popTicks = ui::PopMessageManager::DEFAULT_TICKS;
+    const bool enabled = !syncconfig::is_enabled();
+    if (enabled && !syncconfig::is_sysmodule_installed())
+    {
+        const char *message = strings::get_by_name(strings::names::NEXTCLOUD, 18);
+        ui::PopMessageManager::push_message(popTicks,
+                                            message ? message : "JKSV Cloud Sync is not installed. Install the full package and reboot.");
+        return;
+    }
+
+    if (enabled && !remote::nextcloud_is_configured())
+    {
+        const char *message = strings::get_by_name(strings::names::NEXTCLOUD, 19);
+        ui::PopMessageManager::push_message(popTicks,
+                                            message ? message : "Connect Nextcloud before enabling background sync.");
+        return;
+    }
+
+    const bool saved = syncconfig::set_enabled(enabled);
+    if (saved)
+    {
+        m_extrasMenu->edit_option(BACKGROUND_SYNC, syncconfig::get_menu_label(enabled));
+        ExtrasMenuState::refresh_status_option();
+    }
+
+    const char *message = strings::get_by_name(strings::names::NEXTCLOUD,
+                                                saved ? (enabled ? 20 : 21) : 22);
+    if (!message)
+    {
+        message = !saved ? "Could not save the background sync setting."
+                         : (enabled ? "Background sync enabled. It runs after a game closes."
+                                    : "Background sync disabled.");
+    }
+    ui::PopMessageManager::push_message(popTicks, message);
+}
+
 static void finish_reinitialization()
 {
     const int popTicks     = ui::PopMessageManager::DEFAULT_TICKS;
@@ -187,6 +252,7 @@ static void disconnect_nextcloud_task(sys::threadpool::JobData baseData)
     const char *status = strings::get_by_name(strings::names::NEXTCLOUD, 15);
     data->task->set_status(status ? status : "Disconnecting Nextcloud securely...");
 
+    syncconfig::set_enabled(false);
     const bool removed = remote::disconnect_nextcloud();
     const char *message = strings::get_by_name(strings::names::NEXTCLOUD, removed ? 7 : 8);
     if (!message) { message = removed ? "Nextcloud disconnected." : "Failed to disconnect Nextcloud."; }
